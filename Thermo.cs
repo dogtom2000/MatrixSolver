@@ -8,8 +8,7 @@ namespace MatrixSolver
 {
     struct DataStructure
     {
-        public string[] components;
-        public int[] componentAmounts;
+        public Dictionary<string, int> components;
         public double[] coefHigh;
         public double[] coefLow;
     }
@@ -67,8 +66,14 @@ namespace MatrixSolver
         {
             var newData = new DataStructure();
 
-            newData.components = new string[] { rawData[0][2].Trim(), rawData[0][4].Trim(), rawData[0][6].Trim(), rawData[0][8].Trim() };
-            newData.componentAmounts = new int[] { Convert.ToInt32(rawData[0][3]), Convert.ToInt32(rawData[0][5]), Convert.ToInt32(rawData[0][7]), Convert.ToInt32(rawData[0][9]) };
+            newData.components = new Dictionary<string, int>();
+            for (var i = 2; i < 10; i += 2)
+            {
+                if (rawData[0][i].Trim() != "")
+                {
+                    newData.components.Add(rawData[0][i].Trim(), Convert.ToInt32(rawData[0][i + 1]));
+                }
+            }
             newData.coefHigh = new double[] {  Convert.ToDouble(rawData[1][0]),
                                                Convert.ToDouble(rawData[1][1]), 
                                                Convert.ToDouble(rawData[1][2]), 

@@ -35,17 +35,38 @@ namespace MatrixSolver
             //var yipp = Gauss(coef);
             //Matrix(3800, 1000);
             var speciesData = new Thermo().BuildSpeciesData();
-            var species = new string[] { "H", "H2", "O", "O2", "H2O" };
-            BuildMatrix(2, 5, species, speciesData);
+            var elements = new string[] { "H", "O" };
+            var species = new string[] { "H", "H2", "H2O", "O", "O2"};
+            BuildMatrix(elements, species, speciesData);
             
         }
 
-        public void BuildMatrix(int numElements, int numMolecules, string[] species, Dictionary<string, DataStructure> speciesData)
+        public void BuildMatrix(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
         {
-            var test = speciesData[species[0]].components.Length;
+            var test2 = speciesData[species[0]].components[elements[0]];
+
+            int[][] a = new int[elements.Length][];
+
+            for (var i = 0; i < elements.Length; i++)
+            {
+                a[i] = new int[species.Length];
+                for (var j = 0; j < species.Length; j++)
+                {
+                    if (speciesData[species[j]].components.ContainsKey(elements[i])){
+                        a[i][j] = speciesData[species[j]].components[elements[i]];
+                    }
+                    else
+                    {
+                        a[i][j] = 0;
+                    }
+                    
+                }
+            }
+
 
         }
 
+        /*
         public void Matrix(double T, double P)
         {
 
@@ -280,7 +301,7 @@ namespace MatrixSolver
             //calculate cp 
 
         }
-
+    */
         public double[] Gauss(double[][] coef)
         {
             int n = coef.Length - 1;
