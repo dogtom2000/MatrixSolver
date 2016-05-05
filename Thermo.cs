@@ -9,6 +9,7 @@ namespace MatrixSolver
     struct DataStructure
     {
         public Dictionary<string, int> components;
+        public double molwt;
         public double[] coefHigh;
         public double[] coefLow;
     }
@@ -74,6 +75,7 @@ namespace MatrixSolver
                     newData.components.Add(rawData[0][i].Trim(), Convert.ToInt32(rawData[0][i + 1]));
                 }
             }
+            newData.molwt = Convert.ToDouble(rawData[0][13]);
             newData.coefHigh = new double[] {  Convert.ToDouble(rawData[1][0]),
                                                Convert.ToDouble(rawData[1][1]), 
                                                Convert.ToDouble(rawData[1][2]), 
