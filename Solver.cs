@@ -66,7 +66,7 @@ namespace MatrixSolver
 
         }
 
-        /*
+
         public void Matrix(double T, double P)
         {
 
@@ -127,7 +127,7 @@ namespace MatrixSolver
                     boi[i] += a[i][j] * n[j];
                 }
                 boi[i] /= MR;
-            }*/
+
             
              
 
