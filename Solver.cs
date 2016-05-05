@@ -66,7 +66,6 @@ namespace MatrixSolver
 
         }
 
-
         public void Matrix(double T, double P)
         {
 
@@ -127,7 +126,7 @@ namespace MatrixSolver
                     boi[i] += a[i][j] * n[j];
                 }
                 boi[i] /= MR;
-
+            }*/
             
              
 
@@ -301,7 +300,7 @@ namespace MatrixSolver
             //calculate cp 
 
         }
-    */
+
         public double[] Gauss(double[][] coef)
         {
             int n = coef.Length - 1;
