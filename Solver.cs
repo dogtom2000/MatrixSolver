@@ -37,16 +37,17 @@ namespace MatrixSolver
             var speciesData = new Thermo().BuildSpeciesData(speciesList);
             var elements = new string[] { "H", "O" };
             
-            BuildMatrix(elements, speciesList, speciesData);
+            Solve(elements, speciesList, speciesData);
             
         }
 
-        public void BuildMatrix(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
+        public void Solve(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
         {
 
             double T = 3800;
             double P = 1000;
             double[] ni = new double[] { 0, 2, 0, 0, 1 };
+            
             double nni = 0;
             double mixtureMassi = 0;
             double[] n = new double[species.Length];
@@ -62,11 +63,29 @@ namespace MatrixSolver
             double mixtureMWi = mixtureMassi / nni;
 
             int[][] a = BuildA(elements, species, speciesData);
+            double[] nbi = new double[] { 0, 2 / mixtureMassi, 0, 0, 1 / mixtureMassi };
+            double[] bi = BuildB(a, nbi, mixtureMassi, elements, speciesData);
 
-            double[] bi = BuildB(a, ni, mixtureMassi, elements, speciesData);
+            double Ti = 1200;
+            double[][] propertiesi = new double[species.Length][];
+            double hoi = 0;
+            for (var i = 0; i < species.Length; i++)
+            {
+                double[] coef;
+                if (Ti > 1000)
+                {
+                    coef = speciesData[species[i]].coefHigh;
+                }
+                else
+                {
+                    coef = speciesData[species[i]].coefLow;
+                }
+                propertiesi[i] = Properties(Ti, P, 1, 1, coef);
+                hoi += propertiesi[i][1] * ni[i] / mixtureMassi;
+            }
 
             //begin iteration calculations
-
+            //n = new double[] { 0.02396, 0.10099, 0.81048, 0.01616, 0.04840};
             for (var i = 0; i < species.Length; i++)
             {
                 n[i] = 0.1 / Convert.ToDouble(species.Length);
@@ -75,7 +94,7 @@ namespace MatrixSolver
             }
             double mixtureMW = mixtureMass / nn;
 
-            double[] b = BuildB(a, n, mixtureMassi, elements, speciesData);
+            double[] b = BuildB(a, n, mixtureMassi * 0.1, elements, speciesData);
 
             double[][] properties = new double[species.Length][];
             for (var i = 0; i < species.Length; i++)
@@ -92,6 +111,33 @@ namespace MatrixSolver
                 properties[i] = Properties(T, P, n[i], nn, coef);
             }
 
+            var matrix = BuildMatrix(elements, species, a, b, bi, n, nn, ni, hoi * Ti / T, mixtureMass, properties);
+
+            var solution = Gauss(matrix);
+
+            double[] pi = new double[elements.Length];
+            Array.Copy(solution, pi, elements.Length);
+
+            double[] delLognj = new double[species.Length];
+            double delLogn = solution[elements.Length];
+            double delLogT = solution[elements.Length + 1];
+
+            for (var j = 0; j < species.Length; j++)
+            {
+                delLognj[j] = 0;
+                for (var i = 0; i < elements.Length; i++)
+                {
+                    delLognj[i] += a[i][j] * pi[i];
+                }
+                delLognj[j] += delLogn + properties[j][1] * delLogT - properties[j][3];
+
+            }
+
+
+        }
+
+        public double[][] BuildMatrix(string[] elements, string[] species, int[][] a, double[] b, double[] bi, double[] n, double nn, double[] ni, double hoi, double mixtureMass, double[][] properties)
+        {
             double[][] matrix = new double[elements.Length + 2][];
 
             for (var k = 0; k < matrix.Length; k++)
@@ -149,9 +195,9 @@ namespace MatrixSolver
                     {
                         matrix[k][elements.Length + 2] += n[j] * properties[j][3] - n[j];
                     }
-                 }
-                 else
-                 {
+                }
+                else
+                {
                     for (var i = 0; i < elements.Length; i++)
                     {
                         matrix[k][i] = 0;
@@ -168,17 +214,24 @@ namespace MatrixSolver
                     matrix[k][elements.Length + 1] = 0;
                     for (var j = 0; j < species.Length; j++)
                     {
-                        matrix[k][elements.Length + 1] += n[j] * properties[j][1] * properties[j][1];
+                        matrix[k][elements.Length + 1] += n[j] * properties[j][1] * properties[j][1] + n[j] * properties[j][0];
                     }
-                    matrix[k][elements.Length + 2] = 0;
+                    
+                    double ho = 0;
+                    for (var i = 0; i < species.Length; i++)
+                    {
+                        ho += properties[i][1] * n[i];// mixtureMass;
+                    }
+                    matrix[k][elements.Length + 2] = hoi - ho;
+                    //matrix[k][elements.Length + 2] = 0;
                     for (var j = 0; j < species.Length; j++)
                     {
                         matrix[k][elements.Length + 2] += n[j] * properties[j][1] * properties[j][3];
                     }
                 }
             }
-            var solution = Gauss(matrix);
 
+            return matrix;
         }
 
         public int[][] BuildA(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
@@ -204,7 +257,7 @@ namespace MatrixSolver
 
         public double[] BuildB(int[][] a, double[] n, double mixtureMass, string[] elements, Dictionary<string, DataStructure> speciesData)
         {
-            double[] b = new double[n.Length];
+            double[] b = new double[elements.Length];
             for (var i = 0; i < a.Length; i++)
             {
                 b[i] = 0;
@@ -212,7 +265,6 @@ namespace MatrixSolver
                 {
                     b[i] += a[i][j] * n[j];
                 }
-                b[i] /= mixtureMass;
             }
             return b;
         }
