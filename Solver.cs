@@ -8,7 +8,7 @@ namespace MatrixSolver
 {
     class Solver
     {
-        private double[][] coef = new double[][] {  new double[] {0,-7.84563,-32.53988,43.57456,36.85973,-49.57382,-20.31025,-43.80687,-43.30098,-17.743,-4.76101,17.16243,16.17694,-8.85359,43.75431,-44.69156,16.95343,25.3891,1.10009,1.28758},
+        /*private double[][] coefTest = new double[][] {  new double[] {0,-7.84563,-32.53988,43.57456,36.85973,-49.57382,-20.31025,-43.80687,-43.30098,-17.743,-4.76101,17.16243,16.17694,-8.85359,43.75431,-44.69156,16.95343,25.3891,1.10009,1.28758},
                                                     new double[] {-35.51747,-11.47266,48.18713,34.44375,4.22275,-10.82673,-7.50844,20.91598,14.73625,-49.55963,-43.54848,28.00519,-2.03296,43.92194,-22.75066,-27.31352,29.92018,23.02879,-36.57122,-17.40341},
                                                     new double[] {20.07857,-40.82183,-5.16496,31.19505,32.20097,-8.03165,-26.09188,32.78706,-35.76935,-40.62433,-1.65903,18.06862,31.58339,-4.81019,35.77054,17.76349,-21.50727,23.33254,-29.64068,10.10889},
                                                     new double[] {-3.97121,13.39277,-48.67545,22.95921,-12.99696,36.95718,31.33763,16.9169,22.26343,7.79449,34.5033,-11.80116,45.30647,-17.5511,21.57587,-20.54701,3.72372,24.88844,19.2364,-21.01001},
@@ -26,284 +26,210 @@ namespace MatrixSolver
                                                     new double[] {-1.59349,-2.0809,15.67342,-2.17774,-11.78324,-1.52178,35.59527,34.39099,-39.25926,19.0827,1.09007,-10.5882,43.08002,38.84115,-20.15737,42.67032,-35.97424,-19.86016,-19.42891,-6.43935},
                                                     new double[] {6.48708,-6.47779,18.09247,-29.29168,33.45074,16.13049,-31.80198,46.05603,-12.6234,-0.71928,17.02807,-19.65887,-27.23723,-41.67593,-19.00919,0.05078,-9.0043,-15.62913,26.38214,21.00312},
                                                     new double[] {35.76553,20.95918,30.20231,-1.46694,21.11505,36.52284,-5.87373,-29.60577,17.5618,7.1055,12.59466,-22.53199,-44.00721,-27.23006,25.41397,-15.79133,-13.73674,-0.90048,12.80386,-42.83298},
-                                                    new double[] {-14.39064,9.81036,-37.70586,-49.48098,-21.71362,42.02382,-5.52021,-39.38869,-38.87959,47.06762,22.05647,-23.21956,27.11067,-38.64252,48.77072,10.34596,8.61549,24.51273,41.18548,17.04937},
-                                                    new double[] {-47.1437,28.1784,-29.27871,-11.3013,39.45933,-25.57098,0.89676,28.07658,-29.15572,-19.02547,23.25123,38.50289,-39.01773,22.46604,11.22805,41.57855,39.30443,28.31143,46.24803,-17.78279},
-                                                    new double[] {43.86808,-48.89539,40.66667,-49.76799,14.05704,-28.81152,45.05768,37.54779,37.66053,8.91609,42.49238,-33.1807,-2.82928,-28.768,47.84573,47.85361,41.90572,29.57133,-8.54575,23.34704}};
-
+                                                    new double[] {-14.39064,9.81036,-37.70586,-49.48098,-21.71362,42.02382,-5.52021,-39.38869,-38.87959,47.06762,22.05647,-23.21956,27.11067,-38.64252,48.77072,10.34596,8.61549,24.51273,41.18548,17.04937} };
+*/
+        
         public void Executive()
         {
             //var yipp = Gauss(coef);
             //Matrix(3800, 1000);
-            var speciesData = new Thermo().BuildSpeciesData();
+            var speciesList = new string[] { "H", "H2", "H2O", "O", "O2" };
+            var speciesData = new Thermo().BuildSpeciesData(speciesList);
             var elements = new string[] { "H", "O" };
-            var species = new string[] { "H", "H2", "H2O", "O", "O2"};
-            BuildMatrix(elements, species, speciesData);
+            
+            BuildMatrix(elements, speciesList, speciesData);
             
         }
 
         public void BuildMatrix(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
         {
-            var test2 = speciesData[species[0]].components[elements[0]];
 
+            double T = 3800;
+            double P = 1000;
+            double[] ni = new double[] { 0, 2, 0, 0, 1 };
+            double nni = 0;
+            double mixtureMassi = 0;
+            double[] n = new double[species.Length];
+            double nn = 0;
+            double mixtureMass = 0;
+
+            for (var i = 0; i < species.Length; i++)
+            {
+                nni += ni[i];
+                mixtureMassi += ni[i] * speciesData[species[i]].molwt;
+                
+            }
+            double mixtureMWi = mixtureMassi / nni;
+
+            int[][] a = BuildA(elements, species, speciesData);
+
+            double[] bi = BuildB(a, ni, mixtureMassi, elements, speciesData);
+
+            //begin iteration calculations
+
+            for (var i = 0; i < species.Length; i++)
+            {
+                n[i] = 0.1 / Convert.ToDouble(species.Length);
+                nn += n[i];
+                mixtureMass += n[i] * speciesData[species[i]].molwt;
+            }
+            double mixtureMW = mixtureMass / nn;
+
+            double[] b = BuildB(a, n, mixtureMassi, elements, speciesData);
+
+            double[][] properties = new double[species.Length][];
+            for (var i = 0; i < species.Length; i++)
+            {
+                double[] coef;
+                if (T > 1000)
+                {
+                    coef = speciesData[species[i]].coefHigh;
+                }
+                else
+                {
+                    coef = speciesData[species[i]].coefLow;
+                }
+                properties[i] = Properties(T, P, n[i], nn, coef);
+            }
+
+            double[][] matrix = new double[elements.Length + 2][];
+
+            for (var k = 0; k < matrix.Length; k++)
+            {
+                matrix[k] = new double[elements.Length + 3];
+
+                if (k < elements.Length)
+                {
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        matrix[k][i] = 0;
+                        for (var j = 0; j < species.Length; j++)
+                        {
+                            matrix[k][i] += a[k][j] * a[i][j] * n[j];
+                        }
+                    }
+                    matrix[k][elements.Length] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length] += a[k][j] * n[j];
+                    }
+                    matrix[k][elements.Length + 1] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 1] += a[k][j] * n[j] * properties[j][1];
+                    }
+                    matrix[k][elements.Length + 2] = bi[k] - b[k];
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 2] += a[k][j] * n[j] * properties[j][3];
+                    }
+                }
+                else if (k < elements.Length + 1)
+                {
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        matrix[k][i] = 0;
+                        for (var j = 0; j < species.Length; j++)
+                        {
+                            matrix[k][i] += a[i][j] * n[j];
+                        }
+                    }
+                    matrix[k][elements.Length] = -nn;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length] += n[j];
+                    }
+                    matrix[k][elements.Length + 1] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 1] += n[j] * properties[j][1];
+                    }
+                    matrix[k][elements.Length + 2] = nn;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 2] += n[j] * properties[j][3] - n[j];
+                    }
+                 }
+                 else
+                 {
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        matrix[k][i] = 0;
+                        for (var j = 0; j < species.Length; j++)
+                        {
+                            matrix[k][i] += a[i][j] * n[j] * properties[j][1];
+                        }
+                    }
+                    matrix[k][elements.Length] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length] += n[j] * properties[j][1];
+                    }
+                    matrix[k][elements.Length + 1] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 1] += n[j] * properties[j][1] * properties[j][1];
+                    }
+                    matrix[k][elements.Length + 2] = 0;
+                    for (var j = 0; j < species.Length; j++)
+                    {
+                        matrix[k][elements.Length + 2] += n[j] * properties[j][1] * properties[j][3];
+                    }
+                }
+            }
+            var solution = Gauss(matrix);
+
+        }
+
+        public int[][] BuildA(string[] elements, string[] species, Dictionary<string, DataStructure> speciesData)
+        {
             int[][] a = new int[elements.Length][];
-
             for (var i = 0; i < elements.Length; i++)
             {
                 a[i] = new int[species.Length];
                 for (var j = 0; j < species.Length; j++)
                 {
-                    if (speciesData[species[j]].components.ContainsKey(elements[i])){
+                    if (speciesData[species[j]].components.ContainsKey(elements[i]))
+                    {
                         a[i][j] = speciesData[species[j]].components[elements[i]];
                     }
                     else
                     {
                         a[i][j] = 0;
                     }
-                    
                 }
             }
-
-
+            return a;
         }
 
-        public void Matrix(double T, double P)
+        public double[] BuildB(int[][] a, double[] n, double mixtureMass, string[] elements, Dictionary<string, DataStructure> speciesData)
         {
-
-            //coefficients for thermodynamic properties
-            // H   {a1, a2, a3, a4, a5, b1, b2, HForm}
-            // H2
-            // O
-            // O2
-            // H2O
-
-            double[][] th = new double[][]
+            double[] b = new double[n.Length];
+            for (var i = 0; i < a.Length; i++)
             {
-                new double[] { 2.50000286E+00, -5.65334214E-09,  3.63251723E-12, -9.19949720E-16,  7.95260746E-20,  2.54736589E+04, -4.46698494E-01,  2.62190349E+04},
-                new double[] { 2.93286579E+00,  8.26607967E-04, -1.46402335E-07,  1.54100359E-11, -6.88804432E-16, -8.13065597E+02, -1.02432887E+00,  0.00000000E+00},
-                new double[] { 2.54363697E+00, -2.73162486E-05, -4.19029520E-09,  4.95481845E-12, -4.79553694E-16,  2.92260120E+04,  4.92229457E+00,  2.99687009E+04},
-                new double[] { 3.66096083E+00,  6.56365523E-04, -1.41149485E-07,  2.05797658E-11, -1.29913248E-15, -1.21597725E+03,  3.41536184E+00,  0.00000000E+00},
-                new double[] { 2.67703787E+00,  2.97318329E-03, -7.73769690E-07,  9.44336689E-11, -4.26900959E-15, -2.98858938E+04,  6.88255571E+00 , 2.90848168E+04}
-            };
-
-            //    {  H, H2,  O, O2, H2O}
-            // {H}[  1,  2,  0,  0,   2]
-            // {O}[  0,  0,  1,  2,   1]
-
-            int[][] a = new int[][]
-            {
-                new int[] {1, 2, 0, 0, 2},
-                new int[] {0, 0, 1, 2, 1}
-            };
-
-            double[] N = new double[] { 0.02, 0.02, 0.02, 0.02, 0.02 };
-            //double[] N = new double[] { 0, 2, 0, 1, 0};
-            //double[] N = new double[] {0.02396, 0.10099, 0.81048, 0.01616, 0.0484 };
-            double[] M = new double[] { 1.00794, 2.01588, 15.99940, 31.99880, 18.01528 };
-
-            double[] n = new double[5];
-            double nn = 0;
-            double MR = 0;
-
-            for (var i = 0; i < 5; i++)
-            {
-                MR += N[i] * M[i];
-            }
-            for (var i = 0; i < 5; i++)
-            {
-                n[i] = N[i];
-                nn += n[i];
-
-            }
-
-            double[] boi = new double[] { 0.11101687012358398, 0.05550843506179199 };
-            double[] bo = new double[2];
-            double[] mm = new double[] { 1.00794, 15.99940 };
-           /* for (var i = 0; i < 2; i++)
-            {
-                boi[i] = 0;
-                for (var j = 0; j < 5; j++)
+                b[i] = 0;
+                for (var j = 0; j < n.Length; j++)
                 {
-                    boi[i] += a[i][j] * n[j];
+                    b[i] += a[i][j] * n[j];
                 }
-                boi[i] /= MR;
-            }*/
-            
-             
-
-            double[] Ho = new double[5];
-            double[] S = new double[5];
-            double[] Cp = new double[5];
-            double[] Mu = new double[5];
-            double[] Muo = new double[5];
-
-            for (var i = 0; i < 5; i++)
-            {
-                //S/R
-                //Ho/RT
-                //mu/RT
-                double So = th[i][0] * Math.Log(298.15) + th[i][1] * 298.15 + th[i][2] / 2 * Math.Pow(298.15, 2) + th[i][3] / 3 * Math.Pow(298.15, 3) + th[i][4] / 4 * Math.Pow(298.15, 4) + th[i][6];
-                Muo[i] = th[i][7] / 298.15 - So;
+                b[i] /= mixtureMass;
             }
+            return b;
+        }
 
-            //start of iteration loop here
-
-            //n[0] = 0.2;
-            //n[1] = 0.2;
-            //n[2] = 0.2;
-            //n[3] = 0.2;
-            //n[4] = 0.2;
-
-            for (var i = 0; i < 2; i++)
-            {
-                bo[i] = 0;
-                for (var j = 0; j < 5; j++)
-                {
-                    bo[i] += a[i][j] * n[j];
-                }
-                bo[i] /= mm[i];
-            }
-            //bo[1] = 0.62502344 / 10;
-            
-            for (var i = 0; i < 5; i++)
-            {
-                Cp[i] = th[i][0] + th[i][1] * T + th[i][2] * Math.Pow(T, 2) + th[i][3] * Math.Pow(T, 3) + th[i][4] * Math.Pow(T, 4);
-                Ho[i] = th[i][0] + th[i][1] / 2 * T + th[i][2] / 3 * Math.Pow(T, 2) + th[i][3] / 4 * Math.Pow(T, 3) + th[i][4] / 5 * Math.Pow(T, 4) + th[i][5] / T;
-                S[i] = th[i][0] * Math.Log(T) + th[i][1] * T + th[i][2] / 2 * Math.Pow(T, 2) + th[i][3] / 3 * Math.Pow(T, 3) + th[i][4] / 4 * Math.Pow(T, 4) + th[i][6];
-                Mu[i] = Ho[i] - S[i] + Math.Log(n[i] / nn) + Math.Log(P / 1);
-            }
-
-            double[][] matrix = new double[5][]
-            {
-                new double[4],
-                new double[4],
-                new double[4],
-                new double[4],
-                new double[4],
-            };
-            int k;
-            
-            for (k = 0; k < 2; k++)
-            {
-                int i;
-                for (i = 0; i < 2; i++)
-                    {
-                        matrix[k][i] = 0;
-                        for (var j = 0; j < 5; j++)
-                        {
-                            matrix[k][i] += a[k][j] * a[i][j] * n[j];
-                        }                       
-                    }
-
-                i = 2;
-                matrix[k][i] = 0;
-                for (var j = 0; j < 5; j++)
-                {
-                    matrix[k][i] += a[k][j] * n[j];
-                }
-                i = 3;
-                matrix[k][i] = 0;
-                for (var j = 0; j < 5; j++)
-                {
-                    matrix[k][i] += a[k][j] * n[j] * Ho[j];
-                }
-            }
-            k = 2;
-            for (var i = 0; i < 2; i++)
-            {
-                matrix[k][i] = 0;
-                for (var j = 0; j < 5; j++)
-                {
-                    matrix[k][i] += a[i][j] * n[j];
-                }
-            }
-            matrix[k][2] = 0;
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[k][2] += n[j];
-                
-            }
-            matrix[k][2] -= nn;
-            matrix[k][3] = 0;
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[k][3] += n[j] * Ho[j];
-            }
-            k = 3;
-
-            
-            for (var i = 0; i < 2; i++)
-            {
-                matrix[k][i] = 0;
-                for (var j = 0; j < 5; j++)
-                {
-                    matrix[k][i] += a[i][j] * n[j] * Ho[j];
-                }
-            }
-            matrix[k][2] = 0;
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[k][2] += n[j] * Ho[j];
-            }
-            matrix[k][3] = 0;
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[k][3] += n[j] * (Cp[j] + Ho[j] * Ho[j]);
-            }
-
-            matrix[4][0] = boi[0] - bo[0];
-
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[4][0] += a[0][j] * n[j] * Mu[j];
-            }
-
-            matrix[4][1] = boi[1] - bo[1];
-
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[4][1] += a[1][j] * n[j] * Mu[j];
-            }
-
-            matrix[4][2] = nn;
-
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[4][2] += (n[j] * Mu[j] - n[j]);
-            }
-
-            matrix[4][3] = 0;
-
-            for (var j = 0; j < 5; j++)
-            {
-                matrix[4][3] += n[j] * Ho[j] * Mu[j];
-            }
-
-
-
-            for (var i = 0; i < 2; i++)
-            {
-
-            }
-            
-            // {y}[  x,  x,  x,  ,x   x]
-
-            // {
-
-            //calcuate aij  (kg-mole of atoms i per kg-mole of species j) {data table}
-            //calculate nj  (kg-mole of j per kilogram of reactant) {Nj / sum: Nj*Mj}
-            //calculate Hoj 
-            //calculate boi (kg-mole of atom i per kilogram of reactants) {aij and nj}
-            //calculate bi  (kg-mole of atom i per kilogram of mixture) {aij and nj}
-            //calculate muj (chemical potential of species j J / kg-mole) {Hoj(298.15) - Soj(298.15) + log( P / P_STP)}
-
-            //calculaate n (molar mass of mixture)
-            //calculate cp 
-
+        public double[] Properties(double T, double P, double n, double nn, double[] coef)
+        {
+            double Cp = coef[0] + coef[1] * T + coef[2] * Math.Pow(T, 2) + coef[3] * Math.Pow(T, 3) + coef[4] * Math.Pow(T, 4);
+            double Ho = coef[0] + coef[1] / 2 * T + coef[2] / 3 * Math.Pow(T, 2) + coef[3] / 4 * Math.Pow(T, 3) + coef[4] / 5 * Math.Pow(T, 4) + coef[5] / T;
+            double So = coef[0] * Math.Log(T) + coef[1] * T + coef[2] / 2 * Math.Pow(T, 2) + coef[3] / 3 * Math.Pow(T, 3) + coef[4] / 4 * Math.Pow(T, 4) + coef[6];
+            double Mu = Ho - So + Math.Log(n / nn) + Math.Log(P);
+            double[] properties = new double[] { Cp, Ho, So, Mu };
+            return properties;
         }
 
         public double[] Gauss(double[][] coef)
         {
-            int n = coef.Length - 1;
+            int n = coef.Length;
 
             for (var k = 0; k < n; k++)
             {
@@ -318,6 +244,7 @@ namespace MatrixSolver
 
         private int SelectRow(double[][] coef, int n, int k)
         {
+
             double[] max = new double[n];
             for (var i = k; i < n; i++)
             {  
@@ -361,13 +288,9 @@ namespace MatrixSolver
 
         private double[][] MoveRow(double[][] coef, int n, int k, int selectedRow)
         {
-            var tempA = coef[k];
+            var temp = coef[k];
             coef[k] = coef[selectedRow];
-            coef[selectedRow] = tempA;
-
-            var tempB = coef[n][k];
-            coef[n][k] = coef[n][selectedRow];
-            coef[n][selectedRow] = tempB;
+            coef[selectedRow] = temp;
 
             return coef;
         }
@@ -377,7 +300,7 @@ namespace MatrixSolver
             double scale = 0;
             for (var i = k + 1; i < n; i++)
             {
-                for (var j = k; j < n; j++)
+                for (var j = k; j < n + 1; j++)
                 {
                     if (j == k)
                     {
@@ -389,7 +312,6 @@ namespace MatrixSolver
                         coef[i][j] -= coef[k][j] * scale;
                     }
                 }
-                coef[n][i] -= coef[n][k] * scale;
             }
 
             return coef;
@@ -406,7 +328,7 @@ namespace MatrixSolver
                 {
                     sum += soln[j] * coef[i][j];
                 }
-                soln[i] = (coef[n][i] - sum) / coef[i][i];
+                soln[i] = (coef[i][n] - sum) / coef[i][i];
             }
             return soln;
         }
