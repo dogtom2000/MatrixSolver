@@ -12,7 +12,7 @@ namespace MatrixSolver
         public double molwt;
         public double[] coefHigh;
         public double[] coefLow;
-    }
+   } 
 
     class Thermo
     {
